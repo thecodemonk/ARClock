@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     de_latitude: float = 0.0
     de_longitude: float = 0.0
     de_timezone: str = "UTC"
+    map_style: str = "dark-matter"
 
     # Data refresh intervals in seconds
     sfi_interval: int = 900

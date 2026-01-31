@@ -17,6 +17,7 @@ interface StationConfig {
   latitude: number;
   longitude: number;
   timezone: string;
+  map_style: string;
 }
 
 interface AppState {
@@ -31,6 +32,9 @@ interface AppState {
 
   showSetup: boolean;
   setShowSetup: (show: boolean) => void;
+
+  mapStyle: string;
+  setMapStyle: (style: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -41,8 +45,11 @@ export const useStore = create<AppState>((set) => ({
   setDxLocation: (loc) => set({ dxLocation: loc }),
 
   stationConfig: null,
-  setStationConfig: (config) => set({ stationConfig: config }),
+  setStationConfig: (config) => set({ stationConfig: config, mapStyle: config.map_style || "dark-matter" }),
 
   showSetup: false,
   setShowSetup: (show) => set({ showSetup: show }),
+
+  mapStyle: "dark-matter",
+  setMapStyle: (style) => set({ mapStyle: style }),
 }));

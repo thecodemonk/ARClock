@@ -3,13 +3,15 @@ import Map, { MapLayerMouseEvent, NavigationControl } from "react-map-gl/maplibr
 import { fetchJson } from "../../lib/api";
 import { useStore } from "../../store";
 import GreyLineLayer from "./GreyLineLayer";
+import { MAP_STYLES } from "./MapStyleSwitcher";
 import StationMarker from "./StationMarker";
-
-const CARTO_DARK =
-  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 export default function MapView() {
   const setDxLocation = useStore((s) => s.setDxLocation);
+  const mapStyle = useStore((s) => s.mapStyle);
+
+  const styleUrl =
+    MAP_STYLES[mapStyle]?.url || MAP_STYLES["dark-matter"].url;
 
   const handleClick = useCallback(
     async (e: MapLayerMouseEvent) => {
@@ -35,7 +37,7 @@ export default function MapView() {
           zoom: 1.5,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={CARTO_DARK}
+        mapStyle={styleUrl}
         onClick={handleClick}
         attributionControl={false}
       >

@@ -17,6 +17,7 @@ async def get_station():
         latitude=settings.de_latitude,
         longitude=settings.de_longitude,
         timezone=settings.de_timezone,
+        map_style=settings.map_style,
     )
 
 
@@ -27,6 +28,7 @@ async def update_station(config: StationConfig):
     settings.de_latitude = config.latitude
     settings.de_longitude = config.longitude
     settings.de_timezone = config.timezone
+    settings.map_style = config.map_style
 
     # Persist to YAML
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,6 +38,7 @@ async def update_station(config: StationConfig):
         "de_latitude": config.latitude,
         "de_longitude": config.longitude,
         "de_timezone": config.timezone,
+        "map_style": config.map_style,
     }
     with open(config_path, "w") as f:
         yaml.dump(data, f, default_flow_style=False)

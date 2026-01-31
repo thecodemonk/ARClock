@@ -1,5 +1,6 @@
 import ClockPanel from "../clocks/ClockPanel";
 import MapView from "../map/MapView";
+import MapStyleSwitcher from "../map/MapStyleSwitcher";
 import DEInfoPanel from "../station/DEInfoPanel";
 import DXInfoPanel from "../station/DXInfoPanel";
 import SpaceWeatherPanel from "../weather/SpaceWeatherPanel";
@@ -15,14 +16,7 @@ export default function Dashboard() {
       </div>
       <div className="dashboard-map">
         <MapView />
-        <div
-          style={{
-            position: "absolute",
-            bottom: 8,
-            left: 8,
-            zIndex: 10,
-          }}
-        >
+        <div className="map-overlay-bottom-left">
           <div className="ws-status">
             <span
               className={`ws-dot ${wsStatus}`}
@@ -35,6 +29,9 @@ export default function Dashboard() {
                 : "Disconnected"}
             </span>
           </div>
+        </div>
+        <div className="map-overlay-top-left">
+          <MapStyleSwitcher />
         </div>
       </div>
       <div className="dashboard-station">

@@ -11,6 +11,7 @@ class StationConfig(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
     timezone: str = "UTC"
+    map_style: str = "dark-matter"
 
 
 class LocationInfo(BaseModel):

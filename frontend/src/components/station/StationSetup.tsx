@@ -1,18 +1,22 @@
 import { FormEvent, useEffect, useState } from "react";
 import { putJson } from "../../lib/api";
 import { useStore } from "../../store";
+import { MAP_STYLES, STYLE_KEYS } from "../map/MapStyleSwitcher";
 
 export default function StationSetup() {
   const showSetup = useStore((s) => s.showSetup);
   const setShowSetup = useStore((s) => s.setShowSetup);
   const config = useStore((s) => s.stationConfig);
   const setStationConfig = useStore((s) => s.setStationConfig);
+  const mapStyle = useStore((s) => s.mapStyle);
+  const setMapStyle = useStore((s) => s.setMapStyle);
 
   const [callsign, setCallsign] = useState(config?.callsign ?? "");
   const [grid, setGrid] = useState(config?.grid ?? "");
   const [lat, setLat] = useState(config?.latitude?.toString() ?? "");
   const [lon, setLon] = useState(config?.longitude?.toString() ?? "");
   const [tz, setTz] = useState(config?.timezone ?? "UTC");
+  const [selectedStyle, setSelectedStyle] = useState(mapStyle);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -22,8 +26,9 @@ export default function StationSetup() {
       setLat(config?.latitude?.toString() ?? "");
       setLon(config?.longitude?.toString() ?? "");
       setTz(config?.timezone ?? "UTC");
+      setSelectedStyle(mapStyle);
     }
-  }, [showSetup, config]);
+  }, [showSetup, config, mapStyle]);
 
   if (!showSetup) return null;
 
@@ -37,9 +42,11 @@ export default function StationSetup() {
         latitude: parseFloat(lat) || 0,
         longitude: parseFloat(lon) || 0,
         timezone: tz,
+        map_style: selectedStyle,
       };
       await putJson("/station/de", body);
       setStationConfig(body);
+      setMapStyle(selectedStyle);
       setShowSetup(false);
     } catch {
       // show error inline
@@ -101,6 +108,20 @@ export default function StationSetup() {
               onChange={(e) => setTz(e.target.value)}
               placeholder="America/New_York"
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Map Style</label>
+            <select
+              className="form-input"
+              value={selectedStyle}
+              onChange={(e) => setSelectedStyle(e.target.value)}
+            >
+              {STYLE_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {MAP_STYLES[key].label}
+                </option>
+              ))}
+            </select>
           </div>
           <button className="btn-primary" type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save Configuration"}

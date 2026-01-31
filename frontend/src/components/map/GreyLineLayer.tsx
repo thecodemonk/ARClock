@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { useGreyLine } from "../../hooks/useSpaceWeather";
 
@@ -6,24 +6,27 @@ export default function GreyLineLayer() {
   const { current: map } = useMap();
   const { data } = useGreyLine();
   const greyline = data as any;
+  const dataRef = useRef(greyline);
+  dataRef.current = greyline;
 
   useEffect(() => {
-    if (!map || !greyline?.geojson) return;
-
+    if (!map) return;
     const m = map.getMap();
 
-    // Wait for map style to be loaded
     const applyLayers = () => {
+      const geojson = dataRef.current?.geojson;
+      if (!geojson) return;
+
       const sourceId = "greyline-source";
 
       if (m.getSource(sourceId)) {
-        (m.getSource(sourceId) as any).setData(greyline.geojson);
+        (m.getSource(sourceId) as any).setData(geojson);
         return;
       }
 
       m.addSource(sourceId, {
         type: "geojson",
-        data: greyline.geojson,
+        data: geojson,
       });
 
       m.addLayer({
@@ -50,13 +53,24 @@ export default function GreyLineLayer() {
       });
     };
 
+    // Apply now if style is ready, and re-apply after every style change
     if (m.isStyleLoaded()) {
       applyLayers();
-    } else {
-      m.on("style.load", applyLayers);
-      return () => {
-        m.off("style.load", applyLayers);
-      };
+    }
+    m.on("style.load", applyLayers);
+    return () => {
+      m.off("style.load", applyLayers);
+    };
+  }, [map]);
+
+  // Update data when greyline changes (without re-registering the event)
+  useEffect(() => {
+    if (!map || !greyline?.geojson) return;
+    const m = map.getMap();
+    if (!m.isStyleLoaded()) return;
+    const src = m.getSource("greyline-source");
+    if (src) {
+      (src as any).setData(greyline.geojson);
     }
   }, [map, greyline]);
 
