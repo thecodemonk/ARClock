@@ -1,0 +1,10 @@
+services:
+  arclock:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/app/config
+    environment:
+      - ARCLOCK_CONFIG=/app/config/arclock.yaml
+    restart: unless-stopped

@@ -1,0 +1,13 @@
+config/arclock.yaml
+backend/app/data/*.bsp
+frontend/node_modules/
+frontend/dist/
+backend/static/
+__pycache__/
+*.pyc
+.env
+.venv
+node_modules/
+dist/
+.claude/
+*.tsbuildinfo

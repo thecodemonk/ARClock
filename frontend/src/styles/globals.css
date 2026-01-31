@@ -1,0 +1,418 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #131920;
+  --bg-card: #1a2029;
+  --bg-card-hover: #1f2733;
+  --border-color: #2a3444;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #5a6470;
+  --accent-amber: #f0a020;
+  --accent-green: #28c840;
+  --accent-red: #e04040;
+  --accent-blue: #40a0e0;
+  --accent-yellow: #e0c840;
+  --kp-low: #28c840;
+  --kp-moderate: #e0c840;
+  --kp-high: #f07020;
+  --kp-severe: #e04040;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas",
+    monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dashboard Grid Layout */
+.dashboard {
+  display: grid;
+  height: 100vh;
+  width: 100vw;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+/* Small screens (< 1024px) - Single column stack */
+@media (max-width: 1023px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "clocks"
+      "map"
+      "station"
+      "weather";
+    overflow-y: auto;
+  }
+}
+
+/* Medium screens (1024-1439px) - Sidebar + map + bottom */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .dashboard {
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "clocks map"
+      "station map"
+      "weather weather";
+  }
+}
+
+/* Large screens (1440px+) - Three columns */
+@media (min-width: 1440px) {
+  .dashboard {
+    grid-template-columns: 300px 1fr 300px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "clocks map weather"
+      "station map weather";
+  }
+}
+
+.dashboard-clocks {
+  grid-area: clocks;
+}
+.dashboard-map {
+  grid-area: map;
+  min-height: 300px;
+  position: relative;
+}
+.dashboard-station {
+  grid-area: station;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-weather {
+  grid-area: weather;
+}
+
+/* Widget Card */
+.widget-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.widget-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.widget-card-body {
+  flex: 1;
+}
+
+/* Clock styles */
+.clock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.callsign-header {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-amber);
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.clock-display {
+  text-align: center;
+}
+
+.clock-time {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.clock-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Space weather widgets */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 1023px) {
+  .weather-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1440px) {
+  .weather-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.weather-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.weather-updated {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Mini chart */
+.mini-chart {
+  height: 40px;
+  width: 100%;
+}
+
+/* Station panels */
+.station-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.station-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.station-label {
+  color: var(--text-secondary);
+}
+
+.station-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Map styles */
+.map-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.maplibregl-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* WS status indicator */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.ws-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ws-dot.connected {
+  background: var(--accent-green);
+}
+.ws-dot.disconnected {
+  background: var(--accent-red);
+}
+.ws-dot.connecting {
+  background: var(--accent-yellow);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Station setup modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--accent-amber);
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--accent-amber);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent-amber);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Loading / Error states */
+.loading-text {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 8px;
+}
+
+.error-text {
+  color: var(--accent-red);
+  font-size: 11px;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Kp bar chart colors */
+.kp-bar-low {
+  fill: var(--kp-low);
+}
+.kp-bar-moderate {
+  fill: var(--kp-moderate);
+}
+.kp-bar-high {
+  fill: var(--kp-high);
+}
+.kp-bar-severe {
+  fill: var(--kp-severe);
+}
+
+/* X-ray flare class colors */
+.xray-a,
+.xray-b {
+  color: var(--accent-green);
+}
+.xray-c {
+  color: var(--accent-yellow);
+}
+.xray-m {
+  color: var(--accent-amber);
+}
+.xray-x {
+  color: var(--accent-red);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
