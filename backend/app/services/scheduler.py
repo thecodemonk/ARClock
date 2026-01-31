@@ -9,7 +9,15 @@ from app.config import settings
 from app.core.cache import cache
 from app.core.websocket_manager import ws_manager
 from app.services.greyline import compute_greyline
-from app.services.space_weather import fetch_kp, fetch_sfi, fetch_ssn, fetch_xray
+from app.services.muf import fetch_muf
+from app.services.space_weather import (
+    fetch_ap,
+    fetch_kp,
+    fetch_sfi,
+    fetch_signal_noise,
+    fetch_ssn,
+    fetch_xray,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +58,27 @@ async def job_fetch_ssn() -> None:
         logger.info("SSN updated: %d", data["value"])
 
 
+async def job_fetch_ap() -> None:
+    data = await fetch_ap()
+    if data:
+        await _broadcast("ap", data)
+        logger.info("Ap updated: %d", data["value"])
+
+
+async def job_fetch_signal_noise() -> None:
+    data = await fetch_signal_noise()
+    if data:
+        await _broadcast("signal_noise", data)
+        logger.info("Signal noise updated: %s", data["value"])
+
+
+async def job_fetch_muf() -> None:
+    data = await fetch_muf()
+    if data:
+        await _broadcast("muf", data)
+        logger.info("MUF updated: %.1f MHz", data["muf"])
+
+
 async def job_compute_greyline() -> None:
     try:
         data = await asyncio.to_thread(compute_greyline)
@@ -67,6 +96,11 @@ async def start_scheduler() -> None:
     _scheduler.add_job(job_fetch_kp, "interval", seconds=settings.kp_interval, id="kp")
     _scheduler.add_job(job_fetch_xray, "interval", seconds=settings.xray_interval, id="xray")
     _scheduler.add_job(job_fetch_ssn, "interval", seconds=settings.ssn_interval, id="ssn")
+    _scheduler.add_job(job_fetch_ap, "interval", seconds=settings.ap_interval, id="ap")
+    _scheduler.add_job(
+        job_fetch_signal_noise, "interval", seconds=settings.signal_noise_interval, id="signal_noise"
+    )
+    _scheduler.add_job(job_fetch_muf, "interval", seconds=settings.muf_interval, id="muf")
     _scheduler.add_job(
         job_compute_greyline, "interval", seconds=settings.greyline_interval, id="greyline"
     )
@@ -86,6 +120,9 @@ async def _initial_fetch() -> None:
         job_fetch_kp(),
         job_fetch_xray(),
         job_fetch_ssn(),
+        job_fetch_ap(),
+        job_fetch_signal_noise(),
+        job_fetch_muf(),
         job_compute_greyline(),
         return_exceptions=True,
     )

@@ -8,12 +8,12 @@ An amateur radio dashboard inspired by [HamClock](https://www.clearskyinstitute.
 
 ## Features
 
-- **Live Space Weather** — Solar Flux Index (SFI), Kp Index, X-ray flux with flare classification, and Sunspot Number, all sourced from NOAA SWPC with automatic refresh
+- **Live Space Weather** — Solar Flux Index (SFI), Kp/Ap Index, X-ray flux with flare classification, Sunspot Number, Signal Noise (HamQSL), and MUF from nearest GIRO ionosonde — all with automatic refresh
 - **Grey Line Map** — World map with real-time day/night terminator overlay computed from Skyfield ephemeris data. Night regions are shaded to look like nighttime
 - **Multiple Map Styles** — Five built-in tile sets (Dark, Dark Clean, Light, Voyager, Liberty) switchable on the fly
 - **Station Info** — Configure your home station (DE) callsign, grid square, and coordinates. Click anywhere on the map to see the DX grid square, bearing, and distance
 - **Real-Time Updates** — WebSocket connection pushes new data to the browser as it arrives. No polling, no page refresh
-- **Mini Charts** — Sparkline history charts for SFI and SSN, colored bar chart for Kp index
+- **Mini Charts** — Sparkline history charts for SFI, SSN, and MUF; colored bar chart for Kp index
 - **Responsive Layout** — CSS Grid adapts from 7" RPi touchscreen (single column) to full desktop (three-column layout)
 - **Frontend Configuration** — All settings managed through the UI and persisted to YAML. No need to edit config files by hand
 - **Docker Ready** — Single-container deployment with config volume mount for persistence across rebuilds
@@ -97,15 +97,18 @@ On initial WebSocket connect, the backend sends a snapshot of all cached data so
 
 ## Data Sources
 
-All space weather data comes from [NOAA Space Weather Prediction Center](https://www.swpc.noaa.gov/).
+Space weather data is sourced from NOAA SWPC, HamQSL, and GIRO ionosondes.
 
-| Data | NOAA Endpoint | Refresh Interval |
-|------|---------------|------------------|
-| Solar Flux Index (SFI) | `json/f107_cm_flux.json` | 15 min |
-| Kp Index | `json/planetary_k_index_1m.json` | 5 min |
-| X-ray Flux | `json/goes/primary/xrays-6-hour.json` | 1 min |
-| Sunspot Number (SSN) | `json/solar-cycle/sunspots.json` | 1 hr |
-| Grey Line | Computed locally via Skyfield + DE421 ephemeris | 1 min |
+| Data | Source | Endpoint | Refresh |
+|------|--------|----------|---------|
+| Solar Flux Index (SFI) | [NOAA SWPC](https://www.swpc.noaa.gov/) | `text/daily-solar-indices.txt` | 15 min |
+| Kp Index | NOAA SWPC | `json/planetary_k_index_1m.json` | 5 min |
+| X-ray Flux | NOAA SWPC | `json/goes/primary/xrays-6-hour.json` | 1 min |
+| Sunspot Number (SSN) | NOAA SWPC | `text/daily-solar-indices.txt` | 1 hr |
+| Ap Index | NOAA SWPC | `text/daily-geomagnetic-indices.txt` | 1 hr |
+| Signal Noise | [HamQSL](https://www.hamqsl.com/) | `solarxml.php` (XML) | 15 min |
+| MUF (3000 km) | [GIRO](https://giro.uml.edu/) | Nearest ionosonde via `lgdc.uml.edu` | 15 min |
+| Grey Line | Local | Computed via Skyfield + DE421 ephemeris | 1 min |
 
 ## Map Styles
 
@@ -150,6 +153,9 @@ Every setting can be overridden with an `ARCLOCK_` prefixed environment variable
 | `ARCLOCK_KP_INTERVAL` | `300` | Kp fetch interval (seconds) |
 | `ARCLOCK_XRAY_INTERVAL` | `60` | X-ray fetch interval (seconds) |
 | `ARCLOCK_SSN_INTERVAL` | `3600` | SSN fetch interval (seconds) |
+| `ARCLOCK_AP_INTERVAL` | `3600` | Ap fetch interval (seconds) |
+| `ARCLOCK_SIGNAL_NOISE_INTERVAL` | `900` | Signal noise fetch interval (seconds) |
+| `ARCLOCK_MUF_INTERVAL` | `900` | MUF fetch interval (seconds) |
 | `ARCLOCK_GREYLINE_INTERVAL` | `60` | Grey line recompute interval (seconds) |
 | `ARCLOCK_CONFIG` | *(auto-detected)* | Path to YAML config file |
 
@@ -162,11 +168,14 @@ The `docker-compose.yml` mounts `./config:/app/config`, so the YAML config lives
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/health` | Returns `{"status": "ok"}` |
-| `GET` | `/api/v1/space-weather/sfi` | Solar Flux Index (current + 30-point history) |
+| `GET` | `/api/v1/space-weather/sfi` | Solar Flux Index (current + 30-day history) |
 | `GET` | `/api/v1/space-weather/kp` | Kp Index (current + 24-point history) |
 | `GET` | `/api/v1/space-weather/xray` | X-ray flux + flare classification |
-| `GET` | `/api/v1/space-weather/ssn` | Sunspot Number (current + 30-month history) |
-| `GET` | `/api/v1/space-weather/all` | All four metrics in one response |
+| `GET` | `/api/v1/space-weather/ssn` | Sunspot Number (current + 30-day history) |
+| `GET` | `/api/v1/space-weather/ap` | Ap Index (current + 30-day history) |
+| `GET` | `/api/v1/space-weather/signal_noise` | Signal noise level + A/K indices (HamQSL) |
+| `GET` | `/api/v1/space-weather/muf` | MUF + foF2 from nearest GIRO ionosonde |
+| `GET` | `/api/v1/space-weather/all` | All seven metrics in one response |
 | `GET` | `/api/v1/greyline` | Terminator GeoJSON + subsolar point |
 | `GET` | `/api/v1/station/de` | Station configuration |
 | `PUT` | `/api/v1/station/de` | Update station config (persists to YAML) |
@@ -194,7 +203,8 @@ ARClock/
 │       │   ├── location.py             # /location/info endpoint
 │       │   └── ws.py                   # WebSocket endpoint
 │       ├── services/
-│       │   ├── space_weather.py        # NOAA SWPC data fetching + parsing
+│       │   ├── space_weather.py        # NOAA SWPC + HamQSL data fetching
+│       │   ├── muf.py                  # GIRO ionosonde MUF fetcher
 │       │   ├── greyline.py             # Terminator polygon computation
 │       │   ├── solar.py                # Subsolar point via Skyfield
 │       │   ├── grid_square.py          # Maidenhead grid conversions
@@ -236,11 +246,13 @@ ARClock/
         │   │   ├── DXInfoPanel.tsx     # Clicked location info
         │   │   └── StationSetup.tsx    # Config modal
         │   └── weather/
-        │       ├── SpaceWeatherPanel.tsx
+        │       ├── SpaceWeatherPanel.tsx# 3x2 widget grid
         │       ├── SFIWidget.tsx       # Solar flux + sparkline
-        │       ├── KpWidget.tsx        # Kp index + bar chart
+        │       ├── KpApWidget.tsx      # Kp + Ap index + bar chart
         │       ├── XrayWidget.tsx      # Flare class + color
         │       ├── SSNWidget.tsx       # Sunspot number + sparkline
+        │       ├── SignalNoiseWidget.tsx# S-level noise + A/K indices
+        │       ├── MUFWidget.tsx       # MUF + foF2 + ionosonde info
         │       └── MiniChart.tsx       # Recharts sparkline/bar
         └── lib/
             ├── api.ts                  # Fetch wrappers

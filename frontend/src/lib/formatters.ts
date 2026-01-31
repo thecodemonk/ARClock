@@ -38,8 +38,14 @@ export function formatDateLocal(date: Date): string {
 
 export function timeAgo(isoString: string): string {
   const now = Date.now();
-  const then = new Date(isoString).getTime();
+  // NOAA timestamps are UTC but may lack the Z suffix — treat as UTC
+  const normalized =
+    isoString.endsWith("Z") || isoString.includes("+")
+      ? isoString
+      : isoString + "Z";
+  const then = new Date(normalized).getTime();
   const diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 0) return "just now";
   if (diffSec < 60) return `${diffSec}s ago`;
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;

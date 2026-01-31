@@ -5,6 +5,7 @@ from fastapi import APIRouter
 
 from app.config import config_path, settings
 from app.models.station import StationConfig
+from app.services.muf import invalidate_station_cache
 
 router = APIRouter(tags=["station"])
 
@@ -23,12 +24,18 @@ async def get_station():
 
 @router.put("/station/de")
 async def update_station(config: StationConfig):
+    location_changed = (
+        settings.de_latitude != config.latitude or settings.de_longitude != config.longitude
+    )
     settings.de_callsign = config.callsign
     settings.de_grid = config.grid
     settings.de_latitude = config.latitude
     settings.de_longitude = config.longitude
     settings.de_timezone = config.timezone
     settings.map_style = config.map_style
+
+    if location_changed:
+        invalidate_station_cache()
 
     # Persist to YAML
     config_path.parent.mkdir(parents=True, exist_ok=True)

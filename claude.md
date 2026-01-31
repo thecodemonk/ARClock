@@ -25,7 +25,8 @@ backend/app/
     location.py        # GET /api/v1/location/info?lat=&lon=
     ws.py              # WebSocket /api/v1/ws (snapshot on connect)
   services/
-    space_weather.py   # NOAA SWPC fetchers (SFI, Kp, X-ray, SSN)
+    space_weather.py   # NOAA SWPC fetchers (SFI, Kp, X-ray, SSN, Ap) + HamQSL signal noise
+    muf.py             # GIRO ionosonde MUF fetcher (station list, nearest finder, data query)
     greyline.py        # Terminator polygon via spherical geometry
     solar.py           # Subsolar point via Skyfield + DE421
     grid_square.py     # Maidenhead grid <-> lat/lon conversions
@@ -34,7 +35,7 @@ backend/app/
   core/
     websocket_manager.py  # WS connection tracking + broadcast
     cache.py              # Thread-safe in-memory data cache
-  models/              # Pydantic response models (station, space_weather, greyline)
+  models/              # Pydantic response models (station, space_weather incl. Ap/SignalNoise/MUF, greyline)
   data/de421.bsp       # Skyfield ephemeris (gitignored, downloaded at build)
 
 frontend/src/
@@ -62,11 +63,13 @@ frontend/src/
       DXInfoPanel.tsx  # Clicked location info (grid, bearing, distance)
       StationSetup.tsx # Config modal (callsign, grid, lat/lon, timezone, map style)
     weather/
-      SpaceWeatherPanel.tsx  # 2x2 grid of weather widgets
+      SpaceWeatherPanel.tsx  # 3x2 grid of weather widgets
       SFIWidget.tsx    # Current value + sparkline
-      KpWidget.tsx     # Current value + colored bar chart
+      KpApWidget.tsx   # Kp (primary) + Ap (secondary) + colored bar chart
       XrayWidget.tsx   # Flare class + flux with color coding
       SSNWidget.tsx    # Current value + sparkline
+      SignalNoiseWidget.tsx  # S-level noise value + A/K indices
+      MUFWidget.tsx    # MUF in MHz + foF2 + sparkline + ionosonde station
       MiniChart.tsx    # Reusable Recharts sparkline and bar chart
   lib/
     api.ts             # fetchJson / putJson wrappers
@@ -78,15 +81,16 @@ frontend/src/
 
 ## Data Sources
 
-All data is fetched from NOAA SWPC (`services.swpc.noaa.gov/json/`).
-
-| Data | Endpoint | Refresh |
-|------|----------|---------|
-| Solar Flux (SFI) | `f107_cm_flux.json` | 15 min |
-| Kp Index | `planetary_k_index_1m.json` | 5 min |
-| X-ray Flux | `goes/primary/xrays-6-hour.json` | 1 min |
-| Sunspot Number | `solar-cycle/sunspots.json` | 1 hr |
-| Grey Line | Computed via Skyfield (subsolar point -> terminator polygon) | 1 min |
+| Data | Source | Endpoint | Refresh |
+|------|--------|----------|---------|
+| Solar Flux (SFI) | NOAA SWPC | `text/daily-solar-indices.txt` | 15 min |
+| Kp Index | NOAA SWPC | `planetary_k_index_1m.json` | 5 min |
+| X-ray Flux | NOAA SWPC | `goes/primary/xrays-6-hour.json` | 1 min |
+| Sunspot Number | NOAA SWPC | `text/daily-solar-indices.txt` | 1 hr |
+| Ap Index | NOAA SWPC | `text/daily-geomagnetic-indices.txt` | 1 hr |
+| Signal Noise | HamQSL | `solarxml.php` (XML) | 15 min |
+| MUF (3000) | GIRO | `lgdc.uml.edu/common/DIDBGetValues` (nearest ionosonde) | 15 min |
+| Grey Line | Local | Computed via Skyfield (subsolar point -> terminator polygon) | 1 min |
 
 ## Map Styles
 
@@ -147,7 +151,7 @@ Note: Local frontend dev requires Node 14+ (Vite 2). Docker build uses Node 20.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/health` | Health check |
-| GET | `/api/v1/space-weather/{sfi,kp,xray,ssn,all}` | Space weather data from cache |
+| GET | `/api/v1/space-weather/{sfi,kp,xray,ssn,ap,signal_noise,muf,all}` | Space weather data from cache |
 | GET | `/api/v1/greyline` | Terminator GeoJSON + subsolar point |
 | GET | `/api/v1/station/de` | Station config (includes map_style) |
 | PUT | `/api/v1/station/de` | Update station config, persists to YAML |
@@ -174,6 +178,6 @@ Three CSS Grid breakpoints:
 
 ## Key Dependencies
 
-**Backend:** fastapi, uvicorn, httpx, skyfield, apscheduler, numpy, pyyaml, pydantic-settings
+**Backend:** fastapi, uvicorn, httpx, skyfield, apscheduler, numpy, pyyaml, pydantic-settings (xml.etree.ElementTree from stdlib for HamQSL XML parsing)
 
 **Frontend:** react, react-dom, maplibre-gl, react-map-gl, recharts, @tanstack/react-query, zustand

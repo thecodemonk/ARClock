@@ -186,9 +186,17 @@ body {
   }
 }
 
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .weather-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
 @media (min-width: 1440px) {
   .weather-grid {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+    max-height: 100%;
   }
 }
 
@@ -207,6 +215,18 @@ body {
 .weather-updated {
   font-size: 9px;
   color: var(--text-muted);
+}
+
+.kp-ap-values {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.weather-value-secondary {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Mini chart */

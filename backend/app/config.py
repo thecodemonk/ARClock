@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     xray_interval: int = 60
     ssn_interval: int = 3600
     greyline_interval: int = 60
+    ap_interval: int = 3600
+    signal_noise_interval: int = 900
+    muf_interval: int = 900
 
     model_config = {"env_prefix": "ARCLOCK_"}
 

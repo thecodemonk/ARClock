@@ -33,6 +33,30 @@ export function useSSN() {
   });
 }
 
+export function useAp() {
+  return useQuery({
+    queryKey: ["space-weather", "ap"],
+    queryFn: () => fetchJson("/space-weather/ap"),
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function useSignalNoise() {
+  return useQuery({
+    queryKey: ["space-weather", "signal_noise"],
+    queryFn: () => fetchJson("/space-weather/signal_noise"),
+    staleTime: 15 * 60_000,
+  });
+}
+
+export function useMUF() {
+  return useQuery({
+    queryKey: ["space-weather", "muf"],
+    queryFn: () => fetchJson("/space-weather/muf"),
+    staleTime: 15 * 60_000,
+  });
+}
+
 export function useGreyLine() {
   return useQuery({
     queryKey: ["greyline"],
