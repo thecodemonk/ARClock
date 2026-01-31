@@ -9,8 +9,6 @@ export default function App() {
   useWebSocket();
   const setStationConfig = useStore((s) => s.setStationConfig);
   const setShowSetup = useStore((s) => s.setShowSetup);
-  const stationConfig = useStore((s) => s.stationConfig);
-
   useEffect(() => {
     fetchJson<any>("/station/de")
       .then((config) => {
@@ -27,7 +25,7 @@ export default function App() {
   return (
     <>
       <Dashboard />
-      <StationSetup key={stationConfig?.callsign ?? "setup"} />
+      <StationSetup />
     </>
   );
 }

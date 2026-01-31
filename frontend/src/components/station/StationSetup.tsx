@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { putJson } from "../../lib/api";
 import { useStore } from "../../store";
 
@@ -14,6 +14,16 @@ export default function StationSetup() {
   const [lon, setLon] = useState(config?.longitude?.toString() ?? "");
   const [tz, setTz] = useState(config?.timezone ?? "UTC");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (showSetup) {
+      setCallsign(config?.callsign ?? "");
+      setGrid(config?.grid ?? "");
+      setLat(config?.latitude?.toString() ?? "");
+      setLon(config?.longitude?.toString() ?? "");
+      setTz(config?.timezone ?? "UTC");
+    }
+  }, [showSetup, config]);
 
   if (!showSetup) return null;
 

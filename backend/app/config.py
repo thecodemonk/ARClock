@@ -20,6 +20,17 @@ def _find_config_file() -> Optional[Path]:
     return None
 
 
+def _resolve_config_path() -> Path:
+    """Return the path to write config to. Uses existing file location or a sensible default."""
+    existing = _find_config_file()
+    if existing:
+        return existing
+    env = os.environ.get("ARCLOCK_CONFIG", "")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parents[2] / "config" / "arclock.yaml"
+
+
 class Settings(BaseSettings):
     de_callsign: str = ""
     de_grid: str = ""
@@ -47,3 +58,4 @@ def load_settings() -> Settings:
 
 
 settings = load_settings()
+config_path = _resolve_config_path()
