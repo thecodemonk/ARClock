@@ -26,7 +26,7 @@ backend/app/
     ws.py              # WebSocket /api/v1/ws (snapshot on connect)
   services/
     space_weather.py   # NOAA SWPC fetchers (SFI, Kp, X-ray, SSN, Ap) + HamQSL signal noise
-    muf.py             # GIRO ionosonde MUF fetcher (station list, nearest finder, data query)
+    muf.py             # GIRO ionosonde MUF fetcher (HTML station list parser, nearest finder, columnar data query)
     greyline.py        # Terminator polygon via spherical geometry
     solar.py           # Subsolar point via Skyfield + DE421
     grid_square.py     # Maidenhead grid <-> lat/lon conversions
@@ -89,7 +89,7 @@ frontend/src/
 | Sunspot Number | NOAA SWPC | `text/daily-solar-indices.txt` | 1 hr |
 | Ap Index | NOAA SWPC | `text/daily-geomagnetic-indices.txt` | 1 hr |
 | Signal Noise | HamQSL | `solarxml.php` (XML) | 15 min |
-| MUF (3000) | GIRO | `lgdc.uml.edu/common/DIDBGetValues` (nearest ionosonde) | 15 min |
+| MUF (3000) | GIRO | `DIDBFastStationList` (HTML, no `</tr>`) + `DIDBGetValues` (columnar: Time CS foF2 QD MUFD QD) | 15 min |
 | Grey Line | Local | Computed via Skyfield (subsolar point -> terminator polygon) | 1 min |
 
 ## Map Styles

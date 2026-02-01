@@ -39,19 +39,25 @@ async def _fetch_station_list() -> list[dict[str, Any]]:
 
     stations: list[dict[str, Any]] = []
     # Parse HTML table rows with station data.
-    # Each row has: URSI code, name, lat, lon (0-360 East), ...
-    row_pattern = re.compile(
-        r"<tr[^>]*>\s*<td[^>]*>([^<]+)</td>\s*<td[^>]*>([^<]+)</td>"
-        r"\s*<td[^>]*>([^<]+)</td>\s*<td[^>]*>([^<]+)</td>",
-        re.IGNORECASE,
-    )
-    for m in row_pattern.finditer(resp.text):
-        code = m.group(1).strip()
-        name = m.group(2).strip()
+    # Rows have no </tr> closing tags, so split on <tr> instead.
+    # Each row has: sequence#, URSI code (in <a> link), name, lat, lon (0-360 East)
+    # Cell content is wrapped in <big> tags.
+    for row_html in re.split(r"<tr[^>]*>", resp.text, flags=re.IGNORECASE):
+        code_match = re.search(r'ursiCode=([^"&\s]+)', row_html)
+        if not code_match:
+            continue
+        code = code_match.group(1).strip()
+        cells = re.findall(
+            r"<td[^>]*>(.*?)</td>", row_html, re.DOTALL | re.IGNORECASE
+        )
+        if len(cells) < 5:
+            continue
+        # Strip HTML tags (<big>, <a>, etc.) from cell text
+        name = re.sub(r"<[^>]+>", "", cells[2]).strip()
         try:
-            lat = float(m.group(3).strip())
+            lat = float(re.sub(r"<[^>]+>", "", cells[3]).strip())
             # GIRO uses 0-360 East longitude; convert to -180/+180
-            lon_raw = float(m.group(4).strip())
+            lon_raw = float(re.sub(r"<[^>]+>", "", cells[4]).strip())
             lon = lon_raw if lon_raw <= 180 else lon_raw - 360
         except ValueError:
             continue
@@ -125,23 +131,22 @@ async def fetch_muf() -> Optional[dict[str, Any]]:
         muf_values: list[dict[str, Any]] = []
         fof2_latest: float | None = None
 
+        # Response format: Time CS foF2 QD MUFD QD
         for line in resp.text.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             parts = line.split()
-            if len(parts) < 3:
+            if len(parts) < 5:
                 continue
             try:
-                char_name = parts[0]
-                time_str = parts[1]
-                value = float(parts[2])
-                if value <= 0:
-                    continue
-                if char_name == "MUFD":
-                    muf_values.append({"time_tag": time_str, "value": value})
-                elif char_name == "foF2":
-                    fof2_latest = value
+                time_str = parts[0]
+                fof2_val = float(parts[2])
+                mufd_val = float(parts[4])
+                if mufd_val > 0:
+                    muf_values.append({"time_tag": time_str, "value": mufd_val})
+                if fof2_val > 0:
+                    fof2_latest = fof2_val
             except (ValueError, IndexError):
                 continue
 
