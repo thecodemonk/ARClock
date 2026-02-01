@@ -11,7 +11,8 @@ An amateur radio dashboard inspired by [HamClock](https://www.clearskyinstitute.
 - **Live Space Weather** — Solar Flux Index (SFI), Kp/Ap Index, X-ray flux with flare classification, Sunspot Number, Signal Noise (HamQSL), and MUF from nearest GIRO ionosonde — all with automatic refresh
 - **Grey Line Map** — World map with real-time day/night terminator overlay computed from Skyfield ephemeris data. Night regions are shaded to look like nighttime
 - **Multiple Map Styles** — Five built-in tile sets (Dark, Dark Clean, Light, Voyager, Liberty) switchable on the fly
-- **Station Info** — Configure your home station (DE) callsign, grid square, and coordinates. Click anywhere on the map to see the DX grid square, bearing, and distance
+- **HF Propagation** — Per-band (80m–10m) propagation predictions computed locally via VOACAP ionospheric model, classified as GOOD/FAIR/POOR/CLOSED with path MUF display
+- **Station Info** — Configure your home station (DE) callsign, grid square, and coordinates. Click anywhere on the map to see the DX grid square, bearing, and distance. Amber pin marks DE, blue pin marks DX
 - **Real-Time Updates** — WebSocket connection pushes new data to the browser as it arrives. No polling, no page refresh
 - **Mini Charts** — Sparkline history charts for SFI, SSN, and MUF; colored bar chart for Kp index
 - **Responsive Layout** — CSS Grid adapts from 7" RPi touchscreen (single column) to full desktop (three-column layout)
@@ -72,6 +73,7 @@ The dashboard adapts to three screen sizes:
 │  FastAPI (Uvicorn) on :8000                             │
 │  ├── /api/v1/space-weather/*  ← REST, from cache       │
 │  ├── /api/v1/greyline         ← REST, computed          │
+│  ├── /api/v1/propagation      ← REST, HF band predictions │
 │  ├── /api/v1/station/de       ← REST, reads/writes YAML │
 │  ├── /api/v1/location/info    ← REST, grid/bearing/dist │
 │  ├── /api/v1/ws               ← WebSocket, real-time    │
@@ -108,6 +110,7 @@ Space weather data is sourced from NOAA SWPC, HamQSL, and GIRO ionosondes.
 | Ap Index | NOAA SWPC | `text/daily-geomagnetic-indices.txt` | 1 hr |
 | Signal Noise | [HamQSL](https://www.hamqsl.com/) | `solarxml.php` (XML) | 15 min |
 | MUF (3000 km) | [GIRO](https://giro.uml.edu/) | Nearest ionosonde via `lgdc.uml.edu` | 15 min |
+| HF Propagation | Local | Computed via [dvoacap-python](https://github.com/skyelaird/dvoacap-python) (VOACAP) | On demand |
 | Grey Line | Local | Computed via Skyfield + DE421 ephemeris | 1 min |
 
 ## Map Styles
@@ -179,6 +182,7 @@ The `docker-compose.yml` mounts `./config:/app/config`, so the YAML config lives
 | `GET` | `/api/v1/greyline` | Terminator GeoJSON + subsolar point |
 | `GET` | `/api/v1/station/de` | Station configuration |
 | `PUT` | `/api/v1/station/de` | Update station config (persists to YAML) |
+| `GET` | `/api/v1/propagation?rx_lat=&rx_lon=` | HF band predictions (local or DE-to-DX path) |
 | `GET` | `/api/v1/location/info?lat=&lon=` | Grid square, bearing, and distance from DE |
 | `WS` | `/api/v1/ws` | Real-time updates (snapshot on connect) |
 
@@ -199,12 +203,14 @@ ARClock/
 │       ├── routers/
 │       │   ├── space_weather.py        # /space-weather/* endpoints
 │       │   ├── greyline.py             # /greyline endpoint
+│       │   ├── propagation.py          # /propagation endpoint (dvoacap)
 │       │   ├── station.py              # /station/de GET/PUT
 │       │   ├── location.py             # /location/info endpoint
 │       │   └── ws.py                   # WebSocket endpoint
 │       ├── services/
 │       │   ├── space_weather.py        # NOAA SWPC + HamQSL data fetching
 │       │   ├── muf.py                  # GIRO ionosonde MUF fetcher
+│       │   ├── propagation.py          # dvoacap wrapper: band classification
 │       │   ├── greyline.py             # Terminator polygon computation
 │       │   ├── solar.py                # Subsolar point via Skyfield
 │       │   ├── grid_square.py          # Maidenhead grid conversions
@@ -228,7 +234,8 @@ ARClock/
         ├── hooks/
         │   ├── useClock.ts             # requestAnimationFrame tick
         │   ├── useWebSocket.ts         # WS connect/reconnect + React Query
-        │   └── useSpaceWeather.ts      # Query hooks for all data
+        │   ├── useSpaceWeather.ts      # Query hooks for all data
+        │   └── usePropagation.ts       # HF propagation query (re-fetches on DX change)
         ├── components/
         │   ├── layout/
         │   │   ├── Dashboard.tsx       # CSS Grid with named areas
@@ -239,11 +246,13 @@ ARClock/
         │   ├── map/
         │   │   ├── MapView.tsx         # MapLibre GL JS
         │   │   ├── GreyLineLayer.tsx   # Night fill + terminator line
-        │   │   ├── StationMarker.tsx   # DE station pin
+        │   │   ├── StationMarker.tsx   # DE station pin (amber)
+        │   │   ├── DXMarker.tsx        # DX location pin (blue)
         │   │   └── MapStyleSwitcher.tsx# Style cycle button
         │   ├── station/
         │   │   ├── DEInfoPanel.tsx     # Home station display
-        │   │   ├── DXInfoPanel.tsx     # Clicked location info
+        │   │   ├── DXInfoPanel.tsx     # Clicked location info + clear button
+        │   │   ├── PropagationPanel.tsx# HF band condition badges
         │   │   └── StationSetup.tsx    # Config modal
         │   └── weather/
         │       ├── SpaceWeatherPanel.tsx# 3x2 widget grid
@@ -274,6 +283,7 @@ ARClock/
 | Real-time | WebSocket (FastAPI native) | Push updates to browser |
 | Scheduling | APScheduler | Background NOAA polling |
 | Astronomy | Skyfield + DE421 | Subsolar point for grey line |
+| Propagation | dvoacap (VOACAP) | HF band condition predictions |
 
 ## License
 
