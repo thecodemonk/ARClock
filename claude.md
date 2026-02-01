@@ -61,7 +61,7 @@ frontend/src/
     station/
       DEInfoPanel.tsx  # Home station info with [setup] button
       DXInfoPanel.tsx  # Clicked location info (grid, bearing, distance)
-      StationSetup.tsx # Config modal (callsign, grid, lat/lon, timezone, map style)
+      StationSetup.tsx # Config modal (callsign, grid, lat/lon, timezone dropdown, map style); grid auto-fills lat/lon/timezone
     weather/
       SpaceWeatherPanel.tsx  # 3x2 grid of weather widgets
       SFIWidget.tsx    # Current value + sparkline
@@ -73,7 +73,7 @@ frontend/src/
       MiniChart.tsx    # Reusable Recharts sparkline and bar chart
   lib/
     api.ts             # fetchJson / putJson wrappers
-    gridSquare.ts      # Client-side Maidenhead conversion
+    gridSquare.ts      # Client-side Maidenhead conversion (latLonToGrid + gridToLatLon)
     formatters.ts      # Time/date formatting, timeAgo
   styles/
     globals.css        # Dark theme, CSS Grid (3 breakpoints), all component styles
@@ -109,6 +109,8 @@ Style URLs are defined in `frontend/src/components/map/MapStyleSwitcher.tsx`.
 ## Configuration
 
 All configuration is managed through the frontend UI (Station Setup modal) and persisted to `config/arclock.yaml`. On first run with no config, the setup modal appears automatically.
+
+Entering a valid Maidenhead grid square (4 or 6 characters) automatically populates the latitude, longitude, and timezone fields. Coordinates are set to the center of the grid square. Timezone is guessed from the coordinates using longitude-based offset matching with geographic region preference, and can be overridden via the timezone dropdown (populated from `Intl.supportedValuesOf("timeZone")`).
 
 ```yaml
 de_callsign: "W1AW"

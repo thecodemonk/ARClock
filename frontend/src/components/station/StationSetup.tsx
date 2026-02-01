@@ -1,7 +1,59 @@
 import { FormEvent, useEffect, useState } from "react";
 import { putJson } from "../../lib/api";
+import { gridToLatLon } from "../../lib/gridSquare";
 import { useStore } from "../../store";
 import { MAP_STYLES, STYLE_KEYS } from "../map/MapStyleSwitcher";
+
+const TIMEZONES: string[] = (() => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return ["UTC"];
+  }
+})();
+
+function guessTimezone(lat: number, lon: number): string {
+  const targetOffset = Math.round(lon / 15) * 60;
+  const now = new Date();
+  const utcMs = new Date(
+    now.toLocaleString("en-US", { timeZone: "UTC" })
+  ).getTime();
+
+  // Prefer region based on rough geography
+  let preferredPrefix = "";
+  if (lon >= -170 && lon <= -30) preferredPrefix = "America/";
+  else if (lon > -30 && lon <= 60 && lat >= 35) preferredPrefix = "Europe/";
+  else if (lon > -30 && lon <= 55 && lat < 35) preferredPrefix = "Africa/";
+  else if (lon > 55 && lat >= -10) preferredPrefix = "Asia/";
+  else if (lon > 100 && lat < -10) preferredPrefix = "Australia/";
+  else if (lon > 160 || lon < -150) preferredPrefix = "Pacific/";
+
+  let best = "UTC";
+  let bestDiff = Infinity;
+  let bestScore = -1;
+
+  for (const tz of TIMEZONES) {
+    try {
+      const tzMs = new Date(
+        now.toLocaleString("en-US", { timeZone: tz })
+      ).getTime();
+      const diff = Math.abs((tzMs - utcMs) / 60000 - targetOffset);
+      let score = 0;
+      if (preferredPrefix && tz.startsWith(preferredPrefix)) score += 2;
+      if (tz.split("/").length <= 2) score += 1;
+
+      if (diff < bestDiff || (diff === bestDiff && score > bestScore)) {
+        bestDiff = diff;
+        bestScore = score;
+        best = tz;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return best;
+}
 
 export default function StationSetup() {
   const showSetup = useStore((s) => s.showSetup);
@@ -74,7 +126,16 @@ export default function StationSetup() {
             <input
               className="form-input"
               value={grid}
-              onChange={(e) => setGrid(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setGrid(val);
+                const coords = gridToLatLon(val);
+                if (coords) {
+                  setLat(coords.lat.toString());
+                  setLon(coords.lon.toString());
+                  setTz(guessTimezone(coords.lat, coords.lon));
+                }
+              }}
               placeholder="FN31pr"
             />
           </div>
@@ -102,12 +163,17 @@ export default function StationSetup() {
           </div>
           <div className="form-group">
             <label className="form-label">Timezone</label>
-            <input
+            <select
               className="form-input"
               value={tz}
               onChange={(e) => setTz(e.target.value)}
-              placeholder="America/New_York"
-            />
+            >
+              {TIMEZONES.map((timezone) => (
+                <option key={timezone} value={timezone}>
+                  {timezone.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
             <label className="form-label">Map Style</label>
