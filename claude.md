@@ -21,12 +21,14 @@ backend/app/
   routers/
     space_weather.py   # GET /api/v1/space-weather/{sfi,kp,xray,ssn,all}
     greyline.py        # GET /api/v1/greyline
+    propagation.py     # GET /api/v1/propagation?rx_lat=&rx_lon= (HF band predictions via dvoacap)
     station.py         # GET/PUT /api/v1/station/de (persists to YAML)
     location.py        # GET /api/v1/location/info?lat=&lon=
     ws.py              # WebSocket /api/v1/ws (snapshot on connect)
   services/
     space_weather.py   # NOAA SWPC fetchers (SFI, Kp, X-ray, SSN, Ap) + HamQSL signal noise
     muf.py             # GIRO ionosonde MUF fetcher (HTML station list parser, nearest finder, columnar data query)
+    propagation.py     # dvoacap wrapper: path/local MUF calc, band classification (GOOD/FAIR/POOR/CLOSED)
     greyline.py        # Terminator polygon via spherical geometry
     solar.py           # Subsolar point via Skyfield + DE421
     grid_square.py     # Maidenhead grid <-> lat/lon conversions
@@ -35,7 +37,7 @@ backend/app/
   core/
     websocket_manager.py  # WS connection tracking + broadcast
     cache.py              # Thread-safe in-memory data cache
-  models/              # Pydantic response models (station, space_weather incl. Ap/SignalNoise/MUF, greyline)
+  models/              # Pydantic response models (station, space_weather incl. Ap/SignalNoise/MUF, greyline, propagation)
   data/de421.bsp       # Skyfield ephemeris (gitignored, downloaded at build)
 
 frontend/src/
@@ -46,6 +48,7 @@ frontend/src/
     useClock.ts        # requestAnimationFrame clock tick
     useWebSocket.ts    # WS connect/reconnect, pushes into React Query cache
     useSpaceWeather.ts # React Query hooks for SFI, Kp, X-ray, SSN, greyline
+    usePropagation.ts  # React Query hook for HF propagation predictions (re-fetches on DX change)
   components/
     layout/
       Dashboard.tsx    # CSS Grid container with named areas + map overlays
@@ -56,12 +59,14 @@ frontend/src/
     map/
       MapView.tsx          # MapLibre GL JS, style from store, click handler
       GreyLineLayer.tsx    # GeoJSON night fill + terminator line, survives style swaps
-      StationMarker.tsx    # DE station pin
+      StationMarker.tsx    # DE station pin (amber)
+      DXMarker.tsx         # DX location pin (blue), reads dxLocation from store
       MapStyleSwitcher.tsx # Cycle button + style URL registry
     station/
       DEInfoPanel.tsx  # Home station info with [setup] button
-      DXInfoPanel.tsx  # Clicked location info (grid, bearing, distance)
+      DXInfoPanel.tsx  # Clicked location info (grid, bearing, distance) + clear button
       StationSetup.tsx # Config modal (callsign, grid, lat/lon, timezone dropdown, map style); grid auto-fills lat/lon/timezone
+      PropagationPanel.tsx  # HF band condition badges (GOOD/FAIR/POOR/CLOSED) + MUF display via dvoacap
     weather/
       SpaceWeatherPanel.tsx  # 3x2 grid of weather widgets
       SFIWidget.tsx    # Current value + sparkline
@@ -90,6 +95,7 @@ frontend/src/
 | Ap Index | NOAA SWPC | `text/daily-geomagnetic-indices.txt` | 1 hr |
 | Signal Noise | HamQSL | `solarxml.php` (XML) | 15 min |
 | MUF (3000) | GIRO | `DIDBFastStationList` (HTML, no `</tr>`) + `DIDBGetValues` (columnar: Time CS foF2 QD MUFD QD) | 15 min |
+| HF Propagation | Local | Computed via dvoacap-python (VOACAP ionospheric model) | On demand |
 | Grey Line | Local | Computed via Skyfield (subsolar point -> terminator polygon) | 1 min |
 
 ## Map Styles
@@ -157,6 +163,7 @@ Note: Local frontend dev requires Node 14+ (Vite 2). Docker build uses Node 20.
 | GET | `/api/v1/greyline` | Terminator GeoJSON + subsolar point |
 | GET | `/api/v1/station/de` | Station config (includes map_style) |
 | PUT | `/api/v1/station/de` | Update station config, persists to YAML |
+| GET | `/api/v1/propagation?rx_lat=&rx_lon=` | HF band predictions (local or DE-to-DX path) |
 | GET | `/api/v1/location/info?lat=&lon=` | Grid square, bearing, distance from DE |
 | WS | `/api/v1/ws` | Real-time updates (snapshot on connect, then push) |
 
@@ -180,6 +187,6 @@ Three CSS Grid breakpoints:
 
 ## Key Dependencies
 
-**Backend:** fastapi, uvicorn, httpx, skyfield, apscheduler, numpy, pyyaml, pydantic-settings (xml.etree.ElementTree from stdlib for HamQSL XML parsing)
+**Backend:** fastapi, uvicorn, httpx, skyfield, apscheduler, numpy, pyyaml, pydantic-settings, dvoacap (xml.etree.ElementTree from stdlib for HamQSL XML parsing)
 
 **Frontend:** react, react-dom, maplibre-gl, react-map-gl, recharts, @tanstack/react-query, zustand

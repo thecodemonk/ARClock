@@ -10,7 +10,8 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 
-# Install backend dependencies
+# Install git (needed for pip git dependencies) and backend dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 

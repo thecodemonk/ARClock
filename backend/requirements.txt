@@ -8,3 +8,4 @@ httpx==0.28.1
 skyfield==1.49
 apscheduler==3.10.4
 numpy==2.2.1
+dvoacap @ git+https://github.com/skyelaird/dvoacap-python.git

@@ -3,6 +3,7 @@ import MapView from "../map/MapView";
 import MapStyleSwitcher from "../map/MapStyleSwitcher";
 import DEInfoPanel from "../station/DEInfoPanel";
 import DXInfoPanel from "../station/DXInfoPanel";
+import PropagationPanel from "../station/PropagationPanel";
 import SpaceWeatherPanel from "../weather/SpaceWeatherPanel";
 import { useStore } from "../../store";
 
@@ -37,6 +38,7 @@ export default function Dashboard() {
       <div className="dashboard-station">
         <DEInfoPanel />
         <DXInfoPanel />
+        <PropagationPanel />
       </div>
       <div className="dashboard-weather">
         <SpaceWeatherPanel />

@@ -4,6 +4,7 @@ import { fetchJson } from "../../lib/api";
 import { useStore } from "../../store";
 import GreyLineLayer from "./GreyLineLayer";
 import { MAP_STYLES } from "./MapStyleSwitcher";
+import DXMarker from "./DXMarker";
 import StationMarker from "./StationMarker";
 
 export default function MapView() {
@@ -44,6 +45,7 @@ export default function MapView() {
         <NavigationControl position="top-right" />
         <GreyLineLayer />
         <StationMarker />
+        <DXMarker />
       </Map>
     </div>
   );

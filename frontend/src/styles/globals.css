@@ -131,6 +131,19 @@ body {
   color: var(--text-secondary);
 }
 
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.clear-btn:hover {
+  color: var(--text-primary);
+}
+
 .widget-card-body {
   flex: 1;
 }
@@ -467,6 +480,57 @@ select.form-input option {
 }
 .xray-x {
   color: var(--accent-red);
+}
+
+/* Propagation band badges */
+.prop-band-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.prop-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 3px 6px;
+  min-width: 44px;
+  background: var(--bg-secondary);
+}
+
+.prop-badge-band {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.prop-badge-status {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+
+.prop-legend {
+  display: flex;
+  gap: 8px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.prop-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.prop-legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 /* Scrollbar */

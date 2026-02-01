@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import greyline, location, space_weather, station, ws
+from app.routers import greyline, location, propagation, space_weather, station, ws
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +39,7 @@ app.include_router(space_weather.router, prefix="/api/v1")
 app.include_router(greyline.router, prefix="/api/v1")
 app.include_router(station.router, prefix="/api/v1")
 app.include_router(location.router, prefix="/api/v1")
+app.include_router(propagation.router, prefix="/api/v1")
 app.include_router(ws.router, prefix="/api/v1")
 
 

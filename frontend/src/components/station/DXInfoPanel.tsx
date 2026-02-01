@@ -4,8 +4,23 @@ import WidgetCard from "../layout/WidgetCard";
 export default function DXInfoPanel() {
   const dx = useStore((s) => s.dxLocation);
 
+  const setDxLocation = useStore((s) => s.setDxLocation);
+
   return (
-    <WidgetCard title="DX Location">
+    <WidgetCard
+      title="DX Location"
+      rightHeader={
+        dx ? (
+          <button
+            className="clear-btn"
+            onClick={() => setDxLocation(null)}
+            title="Clear DX"
+          >
+            &times;
+          </button>
+        ) : undefined
+      }
+    >
       {!dx ? (
         <div className="loading-text" style={{ color: "var(--text-muted)" }}>
           Click map to select
